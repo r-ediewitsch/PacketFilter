@@ -11,6 +11,7 @@ entity fsm_interpreter is
 
         jump_en        : out STD_LOGIC;
         jump_addr      : out STD_LOGIC_VECTOR(7 downto 0);
+        done           : out STD_LOGIC;
         accept         : out STD_LOGIC;
         drop           : out STD_LOGIC
     );    
@@ -35,7 +36,6 @@ architecture interpreter_arch of fsm_interpreter is
             when 1 => return ip(23 downto 16);
             when 2 => return ip(15 downto 8);
             when 3 => return ip(7 downto 0);
-            when others => return (others => '0');
         end case;
     end;
     
@@ -52,6 +52,7 @@ begin
         elsif rising_edge(clk) then
             case current_state is
                 when IDLE =>
+                    done <= '0';
                     jump_en <= '0';
                     accept <= '0';
                     drop <= '0';
@@ -97,6 +98,7 @@ begin
                     end case;
                 
                 when FINISH =>
+                    done <= '1';
                     current_state <= IDLE;
                     
             end case;
