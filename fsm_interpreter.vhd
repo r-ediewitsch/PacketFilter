@@ -119,8 +119,7 @@ begin
                 
                 when FINISH =>
                     done <= '1';
-                    current_state <= IDLE;
-                    
+                    current_state <= IDLE; 
             end case;
         end if;
     end process;    
