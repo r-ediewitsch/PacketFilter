@@ -9,6 +9,7 @@ entity top_level is
         source_ip       : in STD_LOGIC_VECTOR(31 downto 0);
         allowed_network : in STD_LOGIC_VECTOR(31 downto 0);
         subnet_mask     : in STD_LOGIC_VECTOR(31 downto 0);
+        permit          : in STD_LOGIC;
 
         accept          : out STD_LOGIC;
         drop            : out STD_LOGIC
@@ -29,6 +30,7 @@ architecture top_arch of top_level is
 
     component microinstr_gen is
         port (
+            permit      : in  std_logic;
             address     : in  std_logic_vector(7 downto 0);
             allowed_ip  : in  std_logic_vector(31 downto 0);
             instruction : out std_logic_vector(15 downto 0)
@@ -56,6 +58,7 @@ begin
     
     microgen_inst: microinstr_gen
         port map (
+            permit      => permit,
             address     => instr_addr,
             allowed_ip  => masked_allowed,
             instruction => micro_instr

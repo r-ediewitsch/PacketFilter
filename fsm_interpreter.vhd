@@ -26,6 +26,8 @@ architecture interpreter_arch of fsm_interpreter is
     signal value    : STD_LOGIC_VECTOR(7 downto 0);
     signal jmp_addr : STD_LOGIC_VECTOR(7 downto 0);
     signal cmp_flag : STD_LOGIC := '0';
+    signal permit   : STD_LOGIC := '0';
+    signal control  : integer := 0;
     
     function get_octet(ip     : STD_LOGIC_VECTOR(31 downto 0);
                        index  : integer)
@@ -47,6 +49,7 @@ begin
             accept <= '0';
             drop <= '0';
             cmp_flag <= '0';
+            control <= 0;
             current_state <= IDLE;
         
         elsif rising_edge(clk) then
@@ -56,12 +59,19 @@ begin
                     jump_en <= '0';
                     accept <= '0';
                     drop <= '0';
-                    current_state <= DECODE;
+                    
+                    control <= control + 1;
+                    
+                    if control = 1 then
+                        control <= 0;
+                        current_state <= DECODE;
+                    end if;
                     
                 when DECODE =>
                     opcode   <= micro_instr(15 downto 12);
                     field    <= to_integer(unsigned(micro_instr(11 downto 10)));
-                    value    <= micro_instr(9 downto 2);
+                    permit   <= micro_instr(8);
+                    value    <= micro_instr(7 downto 0);
                     jmp_addr <= micro_instr(7 downto 0);
                     
                     current_state <= EXECUTE;
@@ -86,11 +96,21 @@ begin
                             current_state <= FINISH;
                             
                         when "1110" => 
-                            accept <= '1';
+                            if permit = '1' then
+                                accept <= '1';
+                            else
+                                drop <= '1';
+                            end if;
+                            
                             current_state <= FINISH;
                             
                         when "1111" => 
-                            drop <= '1';
+                            if permit = '1' then
+                                drop <= '1';
+                            else
+                                accept <= '1';
+                            end if;
+                            
                             current_state <= FINISH;
                             
                         when others =>
