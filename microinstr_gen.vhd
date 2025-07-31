@@ -42,13 +42,13 @@ begin
             when 15 => instr := "1000" & "000" & permit & "00011011";
 
             -- Protocol
-            when 16 => instr := "0001" & "001" & permit & allowed_protocol;
+            when 16 => instr := "0010" & "001" & permit & allowed_protocol;
             when 17 => instr := "1000" & "000" & permit & "00011011";
 
             -- Source Port (2 bytes)
-            when 18 => instr := "0001" & "010" & permit & allowed_src_port(15 downto 8);
+            when 18 => instr := "0010" & "010" & permit & allowed_src_port(15 downto 8);
             when 19 => instr := "1000" & "000" & permit & "00011011";
-            when 20 => instr := "0001" & "011" & permit & allowed_src_port(7 downto 0);
+            when 20 => instr := "0010" & "011" & permit & allowed_src_port(7 downto 0);
             when 21 => instr := "1000" & "000" & permit & "00011011";
 
             -- Destination Port (2 bytes)

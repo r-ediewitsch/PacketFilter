@@ -46,6 +46,7 @@ architecture top_arch of top_level is
     
     signal accept_sig        : std_logic;
     signal drop_sig          : std_logic;
+    signal start             : std_logic;
     signal done              : std_logic;
 
     component microinstr_gen is
@@ -63,16 +64,22 @@ architecture top_arch of top_level is
 
     component fsm_interpreter is
         port (
-            clk         : in  std_logic;
-            rst         : in  std_logic;
-            micro_instr : in  std_logic_vector(15 downto 0);
-            source_ip   : in  std_logic_vector(31 downto 0);
+            clk            : in std_logic;
+            rst            : in std_logic;
+            start          : in std_logic;
+            micro_instr    : in std_logic_vector(15 downto 0);
+            
+            protocol       : in STD_LOGIC_VECTOR(7 downto 0); 
+            source_addr    : in STD_LOGIC_VECTOR(31 downto 0);
+            source_port    : in STD_LOGIC_VECTOR(15 downto 0);
+            dest_addr      : in STD_LOGIC_VECTOR(31 downto 0);
+            dest_port      : in STD_LOGIC_VECTOR(15 downto 0);
 
-            jump_addr   : out std_logic_vector(7 downto 0);
-            jump_en     : out std_logic;
-            accept      : out std_logic;
-            drop        : out std_logic;
-            done        : out std_logic
+            jump_addr      : out std_logic_vector(7 downto 0);
+            jump_en        : out std_logic;
+            accept         : out std_logic;
+            drop           : out std_logic;
+            done           : out std_logic
         );
     end component;
 
@@ -98,15 +105,22 @@ begin
     -- Interpreter not done yet
     interpreter_inst: fsm_interpreter
         port map (
-            clk         => clk,
-            rst         => rst,
-            micro_instr => micro_instr,
-            source_ip   => masked_source,
-            jump_addr   => jump_addr,
-            jump_en     => jump_en,
-            accept      => accept_sig,
-            drop        => drop_sig,
-            done        => done
+            clk            => clk,
+            rst            => rst,
+            start          => start,
+            micro_instr    => micro_instr,
+            
+            protocol       => protocol,
+            source_addr    => masked_source,
+            source_port    => source_port,
+            dest_addr      => masked_dest,
+            dest_port      => dest_port,
+
+            jump_addr      => jump_addr,
+            jump_en        => jump_en,
+            accept         => accept_sig,
+            drop           => drop_sig,
+            done           => done
         );
     
     process(clk, rst)
