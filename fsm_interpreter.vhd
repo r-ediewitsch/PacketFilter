@@ -163,7 +163,7 @@ begin
                             
                             current_state <= FINISH;
                             
-                        when "1110" =>     -- ACCEPT
+                        when "1110" =>     -- MATCH
                             if permit = '1' then
                                 accept <= '1';
                             else
@@ -172,12 +172,9 @@ begin
                             
                             current_state <= FINISH;
                             
-                        when "1111" =>     -- DENY
-                            if permit = '1' then
-                                drop <= '1';
-                            else
-                                accept <= '1';
-                            end if;
+                        when "1111" =>     -- NO_MATCH
+                            drop <= '0';
+                            accept <= '0';
                             
                             current_state <= FINISH;
                             

@@ -25,6 +25,10 @@ architecture top_arch of top_level is
     signal source_port       : std_logic_vector(15 downto 0);
     signal dest_port         : std_logic_vector(15 downto 0);
     
+    signal msk_protocol      : std_logic_vector(7 downto 0);
+    signal msk_source_port   : std_logic_vector(15 downto 0);
+    signal msk_dest_port     : std_logic_vector(15 downto 0);
+    
     signal masked_source     : std_logic_vector(31 downto 0) := (others => '0');
     signal masked_allowed_sc : std_logic_vector(31 downto 0) := (others => '0');
     signal masked_dest       : std_logic_vector(31 downto 0) := (others => '0');
@@ -112,11 +116,11 @@ begin
             start          => start,
             micro_instr    => micro_instr,
             
-            protocol       => protocol,
+            protocol       => msk_protocol,
             source_addr    => masked_source,
-            source_port    => source_port,
+            source_port    => msk_source_port,
             dest_addr      => masked_dest,
-            dest_port      => dest_port,
+            dest_port      => msk_dest_port,
 
             jump_addr      => jump_addr,
             jump_en        => jump_en,
@@ -141,7 +145,7 @@ begin
                     
                     control <= control + 1;
                     
-                    if control = 1 then     -- 1 clock cycle delay
+                    if control = 2 then     -- 1 clock cycle delay
                         control <= 0;
                         state <= DECODE;
                     end if;
@@ -159,6 +163,24 @@ begin
                     state <= GEN;
                     
                 when GEN =>
+                    if to_integer(unsigned(allowed_protocol)) = 0 then
+                        msk_protocol <= protocol and allowed_protocol;
+                    else
+                        msk_protocol <= protocol;
+                    end if;
+                    
+                    if to_integer(unsigned(src_allowed_port)) = 0 then
+                        msk_source_port <= source_port and src_allowed_port;
+                    else
+                        msk_source_port <= source_port;
+                    end if;
+                    
+                    if to_integer(unsigned(dest_allowed_port)) = 0 then
+                        msk_dest_port <= dest_port and dest_allowed_port;
+                    else
+                        msk_dest_port <= dest_port;
+                    end if;
+                
                     masked_source      <= source_addr and source_mask;
                     masked_allowed_sc  <= source_allowed_ip and source_mask;
                     masked_dest        <= dest_addr and dest_mask;
