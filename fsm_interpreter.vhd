@@ -35,6 +35,20 @@ architecture interpreter_arch of fsm_interpreter is
     signal permit   : STD_LOGIC := '0';
     signal control  : integer := 0;
     
+    function to_string(microinstr: std_logic_vector) return string is
+        variable s : string(1 to microinstr'length);
+    begin
+        for i in 1 to microinstr'length loop
+            if microinstr(microinstr'length - i) = '1' then
+                s(i) := '1';
+            else
+                s(i) := '0';
+            end if;
+        end loop;
+
+        return s;
+    end function;
+    
     function get_octet(pr     : STD_LOGIC_VECTOR(7 downto 0);
                        sip    : STD_LOGIC_VECTOR(31 downto 0);
                        sport  : STD_LOGIC_VECTOR(15 downto 0);
@@ -78,6 +92,7 @@ architecture interpreter_arch of fsm_interpreter is
     
 begin
     process(clk, rst)
+    variable octet : std_logic_vector(7 downto 0);
     begin
         if rst = '1' then
             jump_en <= '0';
@@ -106,7 +121,7 @@ begin
                     
                 when DECODE =>
                     opcode   <= micro_instr(15 downto 12);
-                    field    <= to_integer(unsigned(micro_instr(11 downto 10)));
+                    field    <= to_integer(unsigned(micro_instr(11 downto 9)));
                     permit   <= micro_instr(8);
                     value    <= micro_instr(7 downto 0);
                     jmp_addr <= micro_instr(7 downto 0);
@@ -116,6 +131,12 @@ begin
                 when EXECUTE =>
                     case opcode is
                         when "0001" =>      -- CMP_IP
+                            octet := get_octet(protocol, 
+                                         source_addr, source_port, 
+                                         dest_addr, dest_port, 
+                                         opcode, 
+                                         field);
+                            report "Source: " & to_string(octet) & " Allowed: " & to_string(value);
                             if get_octet(protocol, 
                                          source_addr, source_port, 
                                          dest_addr, dest_port, 

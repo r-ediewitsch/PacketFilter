@@ -17,7 +17,7 @@ end microinstr_gen;
 
 architecture generator_arch of microinstr_gen is
 begin
-    process(address)
+    process(address, allowed_src_ip, allowed_dst_ip)
         variable instr : STD_LOGIC_VECTOR(15 downto 0);
     begin
         case to_integer(unsigned(address)) is
@@ -52,9 +52,9 @@ begin
             when 21 => instr := "1000" & "000" & permit & "00011011";
 
             -- Destination Port (2 bytes)
-            when 22 => instr := "0001" & "100" & permit & allowed_dst_port(15 downto 8);
+            when 22 => instr := "0010" & "100" & permit & allowed_dst_port(15 downto 8);
             when 23 => instr := "1000" & "000" & permit & "00011011";
-            when 24 => instr := "0001" & "101" & permit & allowed_dst_port(7 downto 0);
+            when 24 => instr := "0010" & "101" & permit & allowed_dst_port(7 downto 0);
             when 25 => instr := "1000" & "000" & permit & "00011011";
 
             -- Accept

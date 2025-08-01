@@ -9,6 +9,7 @@ entity top_level is
         source_packet   : in STD_LOGIC_VECTOR(103 downto 0);
         acl_rule        : in STD_LOGIC_VECTOR(168 downto 0);
 
+        finish          : out STD_LOGIC;
         accept          : out STD_LOGIC;
         drop            : out STD_LOGIC
     );    
@@ -126,11 +127,13 @@ begin
     process(clk, rst)
     begin
         if rst = '1' then
+            finish <= '0';
             state <= IDLE;
             instr_addr <= (others => '0');
         elsif rising_edge(clk) then
             case state is
                 when IDLE =>
+                    finish <= '0';
                     state <= DECODE;
                     
                 when DECODE =>
@@ -151,17 +154,21 @@ begin
                     masked_dest        <= dest_addr and dest_mask;
                     masked_allowed_ds  <= dest_allowed_ip and dest_mask;
                     
+                    start <= '1';
                     state <= EXECUTE;
                     
                 when EXECUTE =>
                     if done = '1' then
-                        if to_integer(unsigned(instr_addr)) <= 21 then
+                        if to_integer(unsigned(instr_addr)) <= 25 then
                             if jump_en = '1' then
                                 instr_addr <= jump_addr;
                             else
                                 instr_addr <= std_logic_vector(unsigned(instr_addr) + 1);
                             end if;
                         else
+                            finish <= '1';
+                            accept <= accept_sig;
+                            drop <= drop_sig;
                             state <= IDLE;
                         end if;
                     end if;
