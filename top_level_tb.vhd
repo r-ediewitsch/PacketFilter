@@ -2,21 +2,17 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+--  This is the testbench for the top_level entity.
+--  It will instantiate the top_level component and apply a series of test vectors
+--  to verify the ACL logic.
+
 entity top_level_tb is
 end top_level_tb;
 
 architecture behavior of top_level_tb is
-    signal clk             : std_logic := '0';
-    signal rst             : std_logic := '0';
-    signal source_packet   : std_logic_vector(103 downto 0);
-    signal acl_rule        : std_logic_vector(168 downto 0);
-    signal finish          : std_logic;
-    signal accept          : std_logic;
-    signal drop            : std_logic;
 
-    constant clk_period : time := 1 ns;
-
-    component top_level
+    -- Component Declaration for the Device Under Test (DUT)
+    component top_level is
         port (
             clk           : in  std_logic;
             rst           : in  std_logic;
@@ -28,103 +24,155 @@ architecture behavior of top_level_tb is
         );
     end component;
 
-    -- Dedicated wait + report procedure
-    procedure wait_and_check(signal clk : in std_logic;
-                             signal accept : in std_logic;
-                             signal drop : in std_logic;
-                             expected_accept : std_logic;
-                             expected_drop   : std_logic;
-                             message         : string) is
-    begin
-        wait until finish = '1';
-        if accept = expected_accept and drop = expected_drop then
-            report message & ": PASS";
-        else
-            report message & ": FAIL. Got accept = " & std_logic'image(accept) &
-                   ", drop = " & std_logic'image(drop)
-                   severity error;
-        end if;
-    end procedure;
+    -- Inputs
+    signal clk           : std_logic := '0';
+    signal rst           : std_logic := '0';
+    signal source_packet : std_logic_vector(103 downto 0) := (others => '0');
+    signal acl_rule      : std_logic_vector(168 downto 0) := (others => '0');
+
+    -- Outputs
+    signal finish : std_logic;
+    signal accept : std_logic;
+    signal drop   : std_logic;
+
+    -- Clock period definitions
+    constant clk_period : time := 1 ns;
+
+    -- Test Case Data
+    -- This rule permits TCP traffic from 192.168.1.10 to any host in the 10.0.0.0/24 subnet,
+    -- with a source port of 1234 and a destination port of 80.
+    constant PERMIT_RULE : std_logic_vector(168 downto 0) :=
+        "1" &                                                       -- permit
+        "11000000101010000000000100001010" &                         -- source_allowed_ip (192.168.1.10)
+        "11111111111111111111111111111111" &                         -- source_mask (255.255.255.255)
+        "00001010000000000000000000000000" &                         -- dest_allowed_ip (10.0.0.0)
+        "11111111111111111111111100000000" &                         -- dest_mask (255.255.255.0)
+        "00000110" &                                                -- allowed_protocol (6 - TCP)
+        "0000010011010010" &                                        -- src_allowed_port (1234)
+        "0000000001010000";                                         -- dest_allowed_port (80)
+
+    -- A corresponding rule that denies the same traffic pattern.
+    constant DENY_RULE : std_logic_vector(168 downto 0) :=
+        "0" &                                                       -- deny
+        "11000000101010000000000100001010" &                         -- source_allowed_ip (192.168.1.10)
+        "11111111111111111111111111111111" &                         -- source_mask (255.255.255.255)
+        "00001010000000000000000000000000" &                         -- dest_allowed_ip (10.0.0.0)
+        "11111111111111111111111100000000" &                         -- dest_mask (255.255.255.0)
+        "00000110" &                                                -- allowed_protocol (6 - TCP)
+        "0000010011010010" &                                        -- src_allowed_port (1234)
+        "0000000001010000";                                         -- dest_allowed_port (80)
+
+    -- A packet that should match the PERMIT_RULE and be accepted.
+    constant MATCHING_PACKET : std_logic_vector(103 downto 0) :=
+        x"06" &         -- Protocol: 6 (TCP)
+        x"C0A8010A" &   -- Source IP: 192.168.1.10
+        x"04D2" &       -- Source Port: 1234
+        x"0A000063" &   -- Dest IP: 10.0.0.99
+        x"0050";        -- Dest Port: 80
+
+    -- A packet with the wrong protocol (UDP instead of TCP).
+    constant WRONG_PROTOCOL_PACKET : std_logic_vector(103 downto 0) :=
+        x"11" &         -- Protocol: 17 (UDP)
+        x"C0A8010A" &   -- Source IP: 192.168.1.10
+        x"04D2" &       -- Source Port: 1234
+        x"0A000063" &   -- Dest IP: 10.0.0.99
+        x"0050";        -- Dest Port: 80
+
+    -- A packet with the wrong source IP.
+    constant WRONG_SOURCE_IP_PACKET : std_logic_vector(103 downto 0) :=
+        x"06" &         -- Protocol: 6 (TCP)
+        x"C0A8010B" &   -- Source IP: 192.168.1.11
+        x"04D2" &       -- Source Port: 1234
+        x"0A000063" &   -- Dest IP: 10.0.0.99
+        x"0050";        -- Dest Port: 80
 
 begin
+
+    -- Instantiate the Unit Under Test (UUT)
     uut: top_level
         port map (
-            clk => clk,
-            rst => rst,
+            clk           => clk,
+            rst           => rst,
             source_packet => source_packet,
-            acl_rule => acl_rule,
-            finish => finish,
-            accept => accept,
-            drop => drop
+            acl_rule      => acl_rule,
+            finish        => finish,
+            accept        => accept,
+            drop          => drop
         );
 
+    -- Clock process definition
     clk_process : process
     begin
-        while true loop
-            clk <= '0';
-            wait for clk_period / 2;
-            clk <= '1';
-            wait for clk_period / 2;
-        end loop;
+        clk <= '0';
+        wait for clk_period/2;
+        clk <= '1';
+        wait for clk_period/2;
     end process;
 
-    stim_proc : process
+    -- Stimulus process
+    stim_proc: process
     begin
-        -- Reset pulse
+        -- ####################  RESET ####################
+        report "Starting Testbench...";
         rst <= '1';
-        wait for 30 ns;
+        wait for 2 * clk_period;
         rst <= '0';
+        wait for clk_period;
 
-        -- === TEST 1: All match ===
-        acl_rule <=
-            '1' &                          -- permit
-            x"C0A8010A" &                  -- src IP = 192.168.1.10
-            x"FFFFFF00" &                  -- src mask
-            x"0A000001" &                  -- dst IP = 10.0.0.1
-            x"FFFFFFFF" &                  -- dst mask
-            x"06" &                        -- TCP
-            x"04D2" &                      -- src port = 1234
-            x"0050";                       -- dst port = 80
+        -- #################### TEST CASE 2: WRONG PROTOCOL, PERMIT RULE ####################
+        report "TEST 2: Applying a packet with wrong protocol. EXPECT: DROP";
+        acl_rule      <= PERMIT_RULE;
+        source_packet <= WRONG_PROTOCOL_PACKET;
+        wait until rising_edge(finish);
+        wait for clk_period;
 
-        source_packet <=
-            x"06" &                        -- TCP
-            x"C0A80137" &                  -- src IP = 192.168.1.55
-            x"04D2" &                      -- src port = 1234
-            x"0A000001" &                  -- dst IP
-            x"0050";                       -- dst port
+        assert (accept = '0' and drop = '1')
+            report "TEST 2 FAILED: Packet was not dropped." severity error;
+        if (accept = '0' and drop = '1') then
+            report "TEST 2 PASSED: Packet was correctly DROPPED.";
+        end if;
+     
+        -- #################### TEST CASE 1: MATCHING PACKET, PERMIT RULE ####################
+        report "TEST 1: Applying a matching packet with a PERMIT rule. EXPECT: ACCEPT";
+        acl_rule      <= PERMIT_RULE;
+        source_packet <= MATCHING_PACKET;
+        wait until rising_edge(finish);
+        wait for clk_period; -- Allow signals to settle before checking
 
-        wait_and_check(clk, accept, drop, '1', '0', "Test 1");
+        assert (accept = '1' and drop = '0')
+            report "TEST 1 FAILED: Packet was not accepted." severity error;
+        if (accept = '1' and drop = '0') then
+            report "TEST 1 PASSED: Packet was correctly ACCEPTED.";
+        end if;
 
-        -- === TEST 2: Source IP mismatch ===
-        source_packet <=
-            x"06" &
-            x"C0A80201" &                  -- src IP outside subnet
-            x"04D2" &
-            x"0A000001" &
-            x"0050";
+        -- #################### TEST CASE 3: WRONG SOURCE IP, PERMIT RULE ####################
+        report "TEST 3: Applying a packet with wrong source IP. EXPECT: DROP";
+        acl_rule      <= PERMIT_RULE;
+        source_packet <= WRONG_SOURCE_IP_PACKET;
+        wait until rising_edge(finish);
+        wait for clk_period;
 
-        wait_and_check(clk, accept, drop, '0', '1', "Test 2");
+        assert (accept = '0' and drop = '1')
+            report "TEST 3 FAILED: Packet was not dropped." severity error;
+        if (accept = '0' and drop = '1') then
+            report "TEST 3 PASSED: Packet was correctly DROPPED.";
+        end if;
 
-        -- === TEST 3: Destination port mismatch ===
-        source_packet <=
-            x"06" &
-            x"C0A80111" &
-            x"04D2" &
-            x"0A000001" &
-            x"1234";                       -- Wrong dst port
+        -- #################### TEST CASE 4: MATCHING PACKET, DENY RULE ####################
+        report "TEST 4: Applying a matching packet with a DENY rule. EXPECT: DROP";
+        acl_rule      <= DENY_RULE;
+        source_packet <= MATCHING_PACKET;
+        wait until rising_edge(finish);
+        wait for clk_period;
 
-        wait_and_check(clk, accept, drop, '0', '1', "Test 3");
+        assert (accept = '0' and drop = '1')
+            report "TEST 4 FAILED: Packet was not dropped." severity error;
+        if (accept = '0' and drop = '1') then
+            report "TEST 4 PASSED: Packet was correctly DROPPED.";
+        end if;
 
-        -- === TEST 4: Protocol mismatch ===
-        source_packet <=
-            x"11" &                        -- UDP instead of TCP
-            x"C0A80133" &
-            x"04D2" &
-            x"0A000001" &
-            x"0050";
-
-        wait_and_check(clk, accept, drop, '0', '1', "Test 4");
-
-        wait;
+        report "All test cases finished." severity note;
+        wait; -- will wait forever
     end process;
+
 end behavior;

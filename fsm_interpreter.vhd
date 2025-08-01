@@ -92,7 +92,6 @@ architecture interpreter_arch of fsm_interpreter is
     
 begin
     process(clk, rst)
-    variable octet : std_logic_vector(7 downto 0);
     begin
         if rst = '1' then
             jump_en <= '0';
@@ -131,12 +130,6 @@ begin
                 when EXECUTE =>
                     case opcode is
                         when "0001" =>      -- CMP_IP
-                            octet := get_octet(protocol, 
-                                         source_addr, source_port, 
-                                         dest_addr, dest_port, 
-                                         opcode, 
-                                         field);
-                            report "Source: " & to_string(octet) & " Allowed: " & to_string(value);
                             if get_octet(protocol, 
                                          source_addr, source_port, 
                                          dest_addr, dest_port, 

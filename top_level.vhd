@@ -45,6 +45,7 @@ architecture top_arch of top_level is
     signal jump_en           : std_logic;
     signal cmp_result        : std_logic;
     
+    signal control           : integer := 0;
     signal accept_sig        : std_logic;
     signal drop_sig          : std_logic;
     signal start             : std_logic;
@@ -134,7 +135,16 @@ begin
             case state is
                 when IDLE =>
                     finish <= '0';
-                    state <= DECODE;
+                    accept <= '0';
+                    drop <= '0';
+                    instr_addr <= (others => '0');
+                    
+                    control <= control + 1;
+                    
+                    if control = 1 then     -- 1 clock cycle delay
+                        control <= 0;
+                        state <= DECODE;
+                    end if;
                     
                 when DECODE =>
                     permit             <= acl_rule(168);
