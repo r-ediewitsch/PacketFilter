@@ -53,13 +53,13 @@ architecture acl_arch of acl_system is
 begin
     ace_inst : top_level
         port map (
-            clk => clk,
-            rst => rst,
-            source_packet => source_packet,
-            acl_rule => current_rule,
-            finish => finish,
-            accept => accept,
-            drop => drop
+            clk             => clk,
+            rst             => rst,
+            source_packet   => source_packet,
+            acl_rule        => current_rule,
+            finish          => finish,
+            accept          => accept,
+            drop            => drop
         );
     
     process(clk, rst)

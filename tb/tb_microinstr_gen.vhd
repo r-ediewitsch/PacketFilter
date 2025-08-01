@@ -2,6 +2,8 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
+-- This testbench is not updated for the latest microinstruction generation.
+
 entity tb_microinstr_gen is
 end tb_microinstr_gen;
 
@@ -9,7 +11,7 @@ architecture sim of tb_microinstr_gen is
 
     signal permit            : STD_LOGIC := '1';
     signal address           : STD_LOGIC_VECTOR(7 downto 0);
-    signal allowed_protocol  : STD_LOGIC_VECTOR(7 downto 0) := x"06";       -- TCP
+    signal allowed_protocol  : STD_LOGIC_VECTOR(7 downto 0) := x"06";        -- TCP
     signal allowed_src_ip    : STD_LOGIC_VECTOR(31 downto 0) := x"C0A80101"; -- 192.168.1.1
     signal allowed_dst_ip    : STD_LOGIC_VECTOR(31 downto 0) := x"AC100102"; -- 172.16.1.2
     signal allowed_src_port  : STD_LOGIC_VECTOR(15 downto 0) := x"1F90";     -- 8080
